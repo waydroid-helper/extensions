@@ -1,0 +1,18 @@
+{
+    "name": "Magisk", 
+    "version": "30300", 
+    "description": "The Magic Mask for Android", 
+    "provides": [
+        "magisk"
+    ], 
+    "conflicts": [
+        "magisk"
+    ], 
+    "source": [
+        "Magisk-30300.apk::https://github.com/ayasa520/Magisk/releases/download/debug-72060c4-30300/Magisk-72060c4-30300-debug.apk"
+    ], 
+    "sha256sums": [
+        "49bfa4a3964681b8423a8f6d4e73d379d673e692404077ee45e52f189d954e69"
+    ], 
+    "install": "Magisk.install"
+}
