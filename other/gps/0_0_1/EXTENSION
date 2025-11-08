@@ -1,0 +1,17 @@
+name=MockGPS
+version=0.0.1
+description="Fake GPS location"
+provides=("gps")
+conflicts=("gps")
+source_x86_64=("${name}-${version}.zip::https://github.com/ayasa520/waydroid_stuff/releases/download/${version}/x86_64.zip")
+sha256sums_x86_64=("3b44d719429ca839ab0940e503280f69d02811ee96e51be75c206970e292e088")
+source_arm64=("${name}-${version}.zip::https://github.com/ayasa520/waydroid_stuff/releases/download/${version}/arm64.zip")
+sha256sums_arm64=("af47eabb369c36c90b3af0ef6985fdd232be0390b69d675f2446f9c7a45f130b")
+android_version=13
+
+package() {
+    cd $srcdir/..
+    mkdir -p $pkgdir/vendor
+    unzip ${name}-${version}.zip -d $srcdir
+    cp -r $srcdir/* $pkgdir/vendor
+}
