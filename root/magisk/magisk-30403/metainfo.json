@@ -1,0 +1,18 @@
+{
+    "name": "Magisk", 
+    "version": "canary-30403", 
+    "description": "The Magic Mask for Android", 
+    "provides": [
+        "magisk"
+    ], 
+    "conflicts": [
+        "magisk"
+    ], 
+    "source": [
+        "Magisk-canary-30403.apk::https://github.com/ayasa520/Magisk/releases/download/canary-30403/app-debug.apk"
+    ], 
+    "sha256sums": [
+        "e419f932f1898cfdafb4a7e45da71fbfa8fd7f7307c5ff74d417db03245f8d96"
+    ], 
+    "install": "Magisk.install"
+}
