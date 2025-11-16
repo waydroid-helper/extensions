@@ -8,6 +8,7 @@ sha256sums_x86_64=("3b44d719429ca839ab0940e503280f69d02811ee96e51be75c206970e292
 source_arm64=("${name}-${version}.zip::https://github.com/ayasa520/waydroid_stuff/releases/download/${version}/arm64.zip")
 sha256sums_arm64=("af47eabb369c36c90b3af0ef6985fdd232be0390b69d675f2446f9c7a45f130b")
 android_version=13
+arch=("x86_64" "arm64")
 
 package() {
     cd $srcdir/..

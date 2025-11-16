@@ -20,5 +20,9 @@
     "sha256sums_arm64": [
         "af47eabb369c36c90b3af0ef6985fdd232be0390b69d675f2446f9c7a45f130b"
     ], 
-    "android_version": "13"
+    "android_version": "13", 
+    "arch": [
+        "x86_64", 
+        "arm64"
+    ]
 }
