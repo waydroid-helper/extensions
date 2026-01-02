@@ -14,6 +14,7 @@ arch=("x86_64")
 
 package() {
     mkdir -p $pkgdir/system
+    mkdir -p $pkgdir/system/etc/init/
     unzip ${name}-${version}.zip -d $srcdir
     cp -r $srcdir/$_repo-$_commit/prebuilts/* $pkgdir/system
     install -Dm644 houdini.rc $pkgdir/system/etc/init/
