@@ -14,10 +14,10 @@
         "houdini-hpe-14-14.0.0b_y.GoogleGame_com1.2.zip::https://github.com/supremegamers/vendor_intel_proprietary_houdini/archive/476c66fa32fc9b2f622904fa1f8cf3658e85d938.zip"
     ], 
     "md5sums": [
-        "cb7ffac26d47ec7c89df43818e126b47"
+        "339a8cb7f3d8fa5959b2c79bbd858c1b"
     ], 
     "sha256sums": [
-        "7c78abbcced1f7c5c1cc794a0afb4010a2e5bb0bb18eadd6de3af2fe13e9dc25"
+        "d0ee7b0478ad737f31f8233950c19cc18204371ef15ef364a43c395b8bb3e1d8"
     ], 
     "android_version": "13", 
     "arch": [

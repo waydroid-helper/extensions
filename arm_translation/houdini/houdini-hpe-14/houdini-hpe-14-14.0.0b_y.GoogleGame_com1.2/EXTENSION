@@ -6,8 +6,8 @@ conflicts=("arm_translaton")
 _commit="476c66fa32fc9b2f622904fa1f8cf3658e85d938"
 _repo="vendor_intel_proprietary_houdini"
 source=("${name}-${version}.zip::https://github.com/supremegamers/${_repo}/archive/${_commit}.zip")
-md5sums=("cb7ffac26d47ec7c89df43818e126b47")
-sha256sums=("7c78abbcced1f7c5c1cc794a0afb4010a2e5bb0bb18eadd6de3af2fe13e9dc25")
+md5sums=("339a8cb7f3d8fa5959b2c79bbd858c1b")
+sha256sums=("d0ee7b0478ad737f31f8233950c19cc18204371ef15ef364a43c395b8bb3e1d8")
 android_version=13
 arch=("x86_64")
 
