@@ -1,0 +1,18 @@
+{
+    "name": "microg-unofficial-installer", 
+    "version": "v1.3.2-beta", 
+    "description": "It installs microG on Android.", 
+    "provides": [
+        "microg"
+    ], 
+    "conflicts": [
+        "gapps", 
+        "microg"
+    ], 
+    "source": [
+        "microg-unofficial-installer-v1.3.2-beta.zip::https://github.com/micro5k/microg-unofficial-installer/releases/download/v1.3.2-beta/microg-unofficial-installer-v1.3.2-beta-23416e3-oss-by-ale5000-signed.zip"
+    ], 
+    "sha256sums": [
+        "e1206d092e1bfb8849b0d43127026a45a14b5bb1996eb1ad08b77a31fafb7de9"
+    ]
+}
