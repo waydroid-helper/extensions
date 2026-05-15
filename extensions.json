@@ -1392,8 +1392,6 @@
                 ]
             },
             {
-                "name": "microg-unofficial-installer",
-                "description": "It installs microG on Android.",
                 "path": "microg-unofficial-installer",
                 "list": [
                     {
