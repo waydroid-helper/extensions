@@ -48,6 +48,7 @@ install.build.type=oss
 install.version.code=6
 install.version=${version}
 USE_MICROG_BY_ALE5000=0
+LOW_FREE_SPACE=0
 SELECTED_MARKET=FakeStore
 APP_DEJAVUBACKEND=1
 APP_NOMINATIMBACKEND=1
@@ -123,13 +124,28 @@ EOF
     local gms_variant=""
     local fakestore_variant=""
     local enable_backends="false"
+    local supported_arch="true"
+    local low_free_space="0"
+
+    # Upstream 1.3.2.48-alpha added smaller 0.3.6 fallback APKs that are used
+    # before the ale5000-signed branch when the default payload is considered
+    # too large. For the architectures handled by this repository we model the
+    # non-interactive default path with LOW_FREE_SPACE=0, but still keep the
+    # 0.3.6 fallback ordering distinct from the beta package.
+    case "$app_abi" in
+        x86_64|x86|arm64-v8a|armeabi-v7a) supported_arch="true" ;;
+        *) supported_arch="false" ;;
+    esac
 
     # Mirror the upstream default fallback chain:
-    # 1. Modern signed microG on Android 10+.
-    # 2. ale5000-signed build on Android 4.0-9 for the architectures handled here.
-    # 3. VTM-based fallback for the oldest Android releases.
-    if [[ "$SDK" -ge 19 ]]; then
+    # 1. Full upstream build when free space is not constrained.
+    # 2. The new 0.3.6 reduced-size build for supported modern architectures.
+    # 3. ale5000-signed build for Android 4.0-9.
+    # 4. VTM-based fallback for the oldest Android releases.
+    if [[ "$SDK" -ge 19 && "$supported_arch" == "true" && "$low_free_space" == "0" ]]; then
         gms_variant="GmsCore"
+    elif [[ "$SDK" -ge 19 && "$supported_arch" == "true" ]]; then
+        gms_variant="GmsCore-0.3.6"
     elif [[ "$SDK" -ge 14 ]]; then
         gms_variant="GmsCoreA5K"
     else
@@ -145,8 +161,10 @@ EOF
         install_component "GsfProxyA5K" "priv-app" "GoogleServicesFramework" "false"
     fi
 
-    if [[ "$SDK" -ge 19 ]]; then
+    if [[ "$SDK" -ge 19 && "$low_free_space" == "0" ]]; then
         fakestore_variant="FakeStore"
+    elif [[ "$SDK" -ge 19 ]]; then
+        fakestore_variant="FakeStore-0.3.6"
     elif [[ "$SDK" -ge 14 ]]; then
         fakestore_variant="FakeStoreA5K"
     else
@@ -161,8 +179,8 @@ EOF
         install_priv_permissions "FDroidPrivilegedExtension" "FDroidPrivilegedExtension"
     fi
 
-    if [[ "$SDK" -ge 21 ]]; then
-        install_component "NewPipe" "app" "NewPipe" "false"
+    if [[ "$SDK" -ge 21 && "$supported_arch" == "true" ]]; then
+        install_component "NewPipe" "app" "NewPipe" "true"
         sed -i '/%CUSTOM_APP_LINKS-START%/a\    <app-link package="org.schabi.newpipe" />' \
             "$pkgdir/system/etc/sysconfig/google.xml"
     elif [[ "$SDK" -ge 16 ]]; then
@@ -197,7 +215,7 @@ EOF
         chown 0:2000 "$pkgdir/system/bin/minutil"
     fi
 
-    install -Dm644 "$srcdir/origin/etc/microg.xml" "$pkgdir/system/etc/microg.xml"
+    install -Dm644 "$srcdir/origin/etc/microg-base.xml" "$pkgdir/system/etc/microg.xml"
 
     # The upstream installer enables placeholder permissions only when the ROM
     # exposes signature spoofing support. This repository targets pre-integrated

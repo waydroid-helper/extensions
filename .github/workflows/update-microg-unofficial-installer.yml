@@ -1,0 +1,83 @@
+name: Update microg-unofficial-installer
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-microg-unofficial-installer:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Pull latest changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git pull origin ${{ github.ref_name }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Update microg-unofficial-installer versions
+      run: |
+        python3 .github/scripts/update_microg_unofficial_installer.py
+
+    - name: Rebuild extensions index
+      run: |
+        python3 gather_meta.py
+
+    - name: Check for changes
+      id: check_changes
+      run: |
+        if git diff --quiet; then
+          echo "changes=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changes=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Capture changed files
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git diff --name-only > /tmp/microg-unofficial-installer-changed-files.txt
+
+    - name: Commit and push changes
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git add microg/microg-unofficial-installer extensions.json
+
+        if git diff --cached --quiet; then
+          echo "No staged changes to commit"
+          exit 0
+        fi
+
+        git commit -m 'Update microg-unofficial-installer releases
+
+        - Added newly discovered upstream release directories
+        - Regenerated metainfo.json via extract_meta.py
+        - Updated extensions.json via gather_meta.py'
+
+        git pull origin ${{ github.ref_name }} --rebase
+        git push origin ${{ github.ref_name }}
+
+    - name: Create summary
+      run: |
+        if [ "${{ steps.check_changes.outputs.changes }}" = "true" ]; then
+          echo "## ✅ New microg-unofficial-installer release(s) added" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Changed files" >> "$GITHUB_STEP_SUMMARY"
+          sed 's/^/- /' /tmp/microg-unofficial-installer-changed-files.txt >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "## ℹ️ No new microg-unofficial-installer releases" >> "$GITHUB_STEP_SUMMARY"
+        fi
