@@ -1,0 +1,225 @@
+name="microg-unofficial-installer"
+version="v1.3.2.48-alpha"
+description="It installs microG on Android."
+provides=("microg")
+conflicts=("gapps" "microg")
+source=("${name}-${version}.zip::https://github.com/micro5k/microg-unofficial-installer/releases/download/nightly/microg-unofficial-installer-v1.3.2.48-alpha-gac955c5f-oss-by-ale5000-signed.zip")
+sha256sums=("ebb97bee9ec04f1e5e7bb4fe89d9afae12387b62b2212da7fe40bb5573d2cc9c")
+
+package() {
+    unzip "${name}-${version}.zip" -d "$srcdir"
+
+    mkdir -p "$pkgdir/system"
+
+    # This package intentionally expands the upstream installer's non-interactive
+    # default configuration into a static system extension. We keep the upstream
+    # SDK and ABI selection rules so the packaged output stays close to the
+    # behavior users would get from the original installer without prompts.
+    local privapp_dir="app"
+    if [[ "$SDK" -ge 19 ]]; then
+        privapp_dir="priv-app"
+    fi
+
+    local app_abi=""
+    case "$CARCH" in
+        x86_64) app_abi="x86_64" ;;
+        x86) app_abi="x86" ;;
+        arm64) app_abi="arm64-v8a" ;;
+        arm) app_abi="armeabi-v7a" ;;
+        *)
+            echo "Unsupported architecture: $CARCH" >&2
+            return 1
+            ;;
+    esac
+
+    cp -r "$srcdir/files/." "$pkgdir/system/"
+
+    if [[ "$SDK" -lt 21 ]]; then
+        rm -rf "$pkgdir/system/etc/sysconfig"
+    fi
+
+    mkdir -p "$pkgdir/system/etc/zips"
+    cat > "$pkgdir/system/etc/zips/${name}.prop" <<EOF
+# SPDX-FileCopyrightText: none
+# SPDX-License-Identifier: CC0-1.0
+
+install.destination=system
+install.build.type=oss
+install.version.code=6
+install.version=${version}
+USE_MICROG_BY_ALE5000=0
+SELECTED_MARKET=FakeStore
+APP_DEJAVUBACKEND=1
+APP_NOMINATIMBACKEND=1
+APP_FDROIDPRIVEXT=1
+APP_AURORASERVICES=0
+APP_NEWPIPE=1
+APP_MYLOCATION=1
+EOF
+    chmod 0640 "$pkgdir/system/etc/zips/${name}.prop"
+
+    install_component() {
+        local src_rel="$1"
+        local kind="$2"
+        local out_name="$3"
+        local with_libs="${4:-false}"
+        local apk_path="$srcdir/origin/${kind}/${src_rel}.apk"
+        local target_base="$pkgdir/system/${kind}"
+
+        [[ "$kind" == "priv-app" && "$privapp_dir" != "priv-app" ]] && target_base="$pkgdir/system/$privapp_dir"
+
+        if [[ "$SDK" -ge 21 ]]; then
+            mkdir -p "$target_base/$out_name"
+            install -Dm644 "$apk_path" "$target_base/$out_name/$out_name.apk"
+
+            # Upstream extracts native libraries beside the APK on modern Android
+            # so the package manager can consume only the active ABI slice.
+            if [[ "$with_libs" == "true" ]]; then
+                mkdir -p "$target_base/$out_name/lib"
+                unzip -qq -j "$apk_path" "lib/${app_abi}/*" -d "$target_base/$out_name/lib"
+            fi
+        else
+            mkdir -p "$target_base"
+            install -Dm644 "$apk_path" "$target_base/$out_name.apk"
+
+            if [[ "$with_libs" == "true" ]]; then
+                local lib_out="$pkgdir/system/lib"
+                [[ "$app_abi" == "arm64-v8a" || "$app_abi" == "x86_64" ]] && lib_out="$pkgdir/system/lib64"
+                mkdir -p "$lib_out"
+                unzip -qq -j "$apk_path" "lib/${app_abi}/*" -d "$lib_out"
+            fi
+        fi
+    }
+
+    install_default_permissions() {
+        local src_name="$1"
+        local out_name="$2"
+        [[ "$SDK" -lt 23 ]] && return 0
+        mkdir -p "$pkgdir/system/etc/default-permissions"
+        install -Dm644 \
+            "$srcdir/origin/etc/default-permissions/default-permissions-${src_name}.xml" \
+            "$pkgdir/system/etc/default-permissions/default-permissions-${out_name}.xml"
+    }
+
+    install_priv_permissions() {
+        local src_name="$1"
+        local out_name="$2"
+        [[ "$SDK" -lt 26 ]] && return 0
+        mkdir -p "$pkgdir/system/etc/permissions"
+        install -Dm644 \
+            "$srcdir/origin/etc/permissions/privapp-permissions-${src_name}.xml" \
+            "$pkgdir/system/etc/permissions/privapp-permissions-${out_name}.xml"
+    }
+
+    if [[ "$SDK" -ge 9 ]]; then
+        install -Dm644 \
+            "$srcdir/origin/framework/com.google.android.maps.jar" \
+            "$pkgdir/system/framework/com.google.android.maps.jar"
+        install -Dm644 \
+            "$srcdir/origin/etc/permissions/com.google.android.maps.xml" \
+            "$pkgdir/system/etc/permissions/com.google.android.maps.xml"
+    fi
+
+    local gms_variant=""
+    local fakestore_variant=""
+    local enable_backends="false"
+
+    # Mirror the upstream default fallback chain:
+    # 1. Modern signed microG on Android 10+.
+    # 2. ale5000-signed build on Android 4.0-9 for the architectures handled here.
+    # 3. VTM-based fallback for the oldest Android releases.
+    if [[ "$SDK" -ge 19 ]]; then
+        gms_variant="GmsCore"
+    elif [[ "$SDK" -ge 14 ]]; then
+        gms_variant="GmsCoreA5K"
+    else
+        gms_variant="GmsCoreVtmLegacy"
+        enable_backends="true"
+    fi
+
+    install_component "$gms_variant" "priv-app" "GmsCore" "true"
+    install_priv_permissions "$gms_variant" "GmsCore"
+    install_default_permissions "$gms_variant" "GmsCore"
+
+    if [[ "$SDK" -ge 9 ]]; then
+        install_component "GsfProxyA5K" "priv-app" "GoogleServicesFramework" "false"
+    fi
+
+    if [[ "$SDK" -ge 19 ]]; then
+        fakestore_variant="FakeStore"
+    elif [[ "$SDK" -ge 14 ]]; then
+        fakestore_variant="FakeStoreA5K"
+    else
+        fakestore_variant="FakeStoreLegacy"
+    fi
+    install_component "$fakestore_variant" "priv-app" "Phonesky" "false"
+    install_priv_permissions "$fakestore_variant" "Phonesky"
+    install_default_permissions "$fakestore_variant" "Phonesky"
+
+    if [[ "$SDK" -ge 8 ]]; then
+        install_component "FDroidPrivilegedExtension" "priv-app" "FDroidPrivilegedExtension" "false"
+        install_priv_permissions "FDroidPrivilegedExtension" "FDroidPrivilegedExtension"
+    fi
+
+    if [[ "$SDK" -ge 21 ]]; then
+        install_component "NewPipe" "app" "NewPipe" "false"
+        sed -i '/%CUSTOM_APP_LINKS-START%/a\    <app-link package="org.schabi.newpipe" />' \
+            "$pkgdir/system/etc/sysconfig/google.xml"
+    elif [[ "$SDK" -ge 16 ]]; then
+        install_component "NewPipeLegacyRevo" "app" "NewPipe" "false"
+        [[ -f "$pkgdir/system/etc/sysconfig/google.xml" ]] && \
+            sed -i '/%CUSTOM_APP_LINKS-START%/a\    <app-link package="org.schabi.newpipelegacy.Revo" />' \
+                "$pkgdir/system/etc/sysconfig/google.xml"
+    fi
+
+    if [[ "$SDK" -ge 21 ]]; then
+        install_component "MyLocation" "app" "MyLocation" "false"
+        install_default_permissions "MyLocation" "MyLocation"
+    fi
+
+    if [[ "$SDK" -ge 9 && "$SDK" -le 18 ]]; then
+        install_component "LegacyNetworkLocation" "app" "NetworkLocation" "false"
+        enable_backends="true"
+    fi
+
+    if [[ "$enable_backends" == "true" ]]; then
+        if [[ "$SDK" -ge 18 ]]; then
+            install_component "DejaVuBackend" "app" "DejaVuBackend" "false"
+            install_default_permissions "DejaVuBackend" "DejaVuBackend"
+        fi
+        if [[ "$SDK" -ge 9 ]]; then
+            install_component "NominatimGeocoderBackend" "app" "NominatimGeocoderBackend" "false"
+        fi
+    fi
+
+    if [[ "$SDK" -ge 19 ]]; then
+        install -Dm755 "$srcdir/origin/bin/minutil.sh" "$pkgdir/system/bin/minutil"
+        chown 0:2000 "$pkgdir/system/bin/minutil"
+    fi
+
+    install -Dm644 "$srcdir/origin/etc/microg.xml" "$pkgdir/system/etc/microg.xml"
+
+    # The upstream installer enables placeholder permissions only when the ROM
+    # exposes signature spoofing support. This repository targets pre-integrated
+    # custom system builds, so we eagerly materialize the permission entries to
+    # keep microG functional on spoofing-capable targets instead of shipping
+    # inert placeholders.
+    find "$pkgdir/system/etc/default-permissions" -type f 2> /dev/null | while read -r xml; do
+        sed -i 's@<!-- %FAKE_PACKAGE_SIGNATURE% -->@<permission name="android.permission.FAKE_PACKAGE_SIGNATURE" fixed="false" />@g' "$xml"
+        sed -i 's@<!-- %ACCESS_BACKGROUND_LOCATION% -->@<permission name="android.permission.ACCESS_BACKGROUND_LOCATION" fixed="false" whitelisted="true" />@g' "$xml"
+    done
+
+    find "$pkgdir/system/etc/permissions" -type f 2> /dev/null | while read -r xml; do
+        sed -i 's@<!-- %FAKE_PACKAGE_SIGNATURE% -->@<permission name="android.permission.FAKE_PACKAGE_SIGNATURE" />@g' "$xml"
+    done
+
+    if [[ "$SDK" -lt 29 ]]; then
+        find "$pkgdir/system/etc/default-permissions" -type f 2> /dev/null | while read -r xml; do
+            sed -i '/ACCESS_BACKGROUND_LOCATION/d' "$xml"
+        done
+    fi
+
+    if [[ -f "$pkgdir/system/etc/sysconfig/google.xml" ]]; then
+        sed -i '/%CUSTOM_APP_LINKS-START%/d;/%CUSTOM_APP_LINKS-END%/d' "$pkgdir/system/etc/sysconfig/google.xml"
+    fi
+}

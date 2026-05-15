@@ -1415,6 +1415,28 @@
                         "sha256sums": [
                             "e1206d092e1bfb8849b0d43127026a45a14b5bb1996eb1ad08b77a31fafb7de9"
                         ]
+                    },
+                    {
+                        "name": "microg-unofficial-installer",
+                        "description": "It installs microG on Android.",
+                        "version": "v1.3.2.48-alpha",
+                        "path": "v1.3.2.48-alpha-gac955c5f",
+                        "files": [
+                            "EXTENSION"
+                        ],
+                        "provides": [
+                            "microg"
+                        ],
+                        "conflicts": [
+                            "gapps",
+                            "microg"
+                        ],
+                        "source": [
+                            "microg-unofficial-installer-v1.3.2.48-alpha.zip::https://github.com/micro5k/microg-unofficial-installer/releases/download/nightly/microg-unofficial-installer-v1.3.2.48-alpha-gac955c5f-oss-by-ale5000-signed.zip"
+                        ],
+                        "sha256sums": [
+                            "ebb97bee9ec04f1e5e7bb4fe89d9afae12387b62b2212da7fe40bb5573d2cc9c"
+                        ]
                     }
                 ]
             }
