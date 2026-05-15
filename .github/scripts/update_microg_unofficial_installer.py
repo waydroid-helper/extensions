@@ -74,6 +74,30 @@ def read_module_version(zip_path):
     raise RuntimeError(f"Unable to read module version from {zip_path}")
 
 
+def detect_zip_layout(zip_path):
+    with zipfile.ZipFile(zip_path) as archive:
+        names = set(archive.namelist())
+    return {
+        "has_files_dir": any(name.startswith("files/") for name in names),
+        "has_origin_sysconfig": any(name.startswith("origin/etc/sysconfig/") for name in names),
+    }
+
+
+def validate_template_compatibility(template_dir, zip_layout):
+    extension_text = (template_dir / "EXTENSION").read_text()
+    expects_files_dir = "$srcdir/files/" in extension_text
+    handles_origin_sysconfig = "origin/etc/sysconfig" in extension_text
+
+    if not zip_layout["has_files_dir"] and expects_files_dir:
+        raise RuntimeError(
+            f"Template {template_dir.name} expects files/ but the new archive does not provide it"
+        )
+    if zip_layout["has_origin_sysconfig"] and not handles_origin_sysconfig:
+        raise RuntimeError(
+            f"Template {template_dir.name} does not handle origin/etc/sysconfig from the new archive"
+        )
+
+
 def build_directory_name(release_tag, asset_version, module_version):
     # Tagged releases map to the human-readable version exposed by module.prop.
     # Nightly releases are mutable, so we keep the asset suffix to preserve a
@@ -206,6 +230,7 @@ def main():
                 continue
 
             template_dir = choose_template_dir_for_index(index, release_assets, existing_names)
+            validate_template_compatibility(template_dir, detect_zip_layout(local_zip))
             sha256 = sha256sum(local_zip)
 
             created_dir = create_version_dir(

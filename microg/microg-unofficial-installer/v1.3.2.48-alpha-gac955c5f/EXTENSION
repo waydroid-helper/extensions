@@ -32,12 +32,6 @@ package() {
             ;;
     esac
 
-    cp -r "$srcdir/files/." "$pkgdir/system/"
-
-    if [[ "$SDK" -lt 21 ]]; then
-        rm -rf "$pkgdir/system/etc/sysconfig"
-    fi
-
     mkdir -p "$pkgdir/system/etc/zips"
     cat > "$pkgdir/system/etc/zips/${name}.prop" <<EOF
 # SPDX-FileCopyrightText: none
@@ -58,6 +52,12 @@ APP_NEWPIPE=1
 APP_MYLOCATION=1
 EOF
     chmod 0640 "$pkgdir/system/etc/zips/${name}.prop"
+
+    install_origin_xml() {
+        local src_rel="$1"
+        local dest_rel="$2"
+        install -Dm644 "$srcdir/origin/etc/${src_rel}" "$pkgdir/system/etc/${dest_rel}"
+    }
 
     install_component() {
         local src_rel="$1"
@@ -120,6 +120,15 @@ EOF
             "$srcdir/origin/etc/permissions/com.google.android.maps.xml" \
             "$pkgdir/system/etc/permissions/com.google.android.maps.xml"
     fi
+
+    if [[ "$SDK" -ge 21 ]]; then
+        install_origin_xml "sysconfig/google.xml" "sysconfig/google.xml"
+        install_origin_xml "sysconfig/features.xml" "sysconfig/features.xml"
+    fi
+
+    install_origin_xml \
+        "org.fdroid.fdroid/additional_repos.xml" \
+        "org.fdroid.fdroid/additional_repos.xml"
 
     local gms_variant=""
     local fakestore_variant=""
