@@ -16,8 +16,9 @@ function PatchHex {
     #file path, ghidra offset, original hex, new hex
     file_offset=$(($2-0x100000))
     if [ $(CheckHex $1 $2 $3) = "1" ]; then
-        hexinbin=$(printf $4 | xxd -r -p)
-        echo -n $hexinbin | dd of=$1 seek=$file_offset bs=1 conv=notrunc;
+        # Pipe xxd straight into dd. Do not store the decoded bytes in a
+        # shell variable or pass them through echo; both drop 0x00.
+        printf '%s' "$4" | xxd -r -p | dd of="$1" seek="$file_offset" bs=1 conv=notrunc status=none
         tmp="Patched $1 at $file_offset with new hex $4"
         echo $tmp
         elif [ $(CheckHex $1 $2 $4) = "1" ]; then
