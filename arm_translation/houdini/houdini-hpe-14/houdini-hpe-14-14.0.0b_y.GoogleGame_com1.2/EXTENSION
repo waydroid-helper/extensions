@@ -1,6 +1,6 @@
 name=houdini-hpe-14
 version=14.0.0b_y.GoogleGame_com1.2
-description="Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC"
+description="Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC. ibt_get_expire_date (20260901) patched out"
 provides=("arm_translaton")
 conflicts=("arm_translaton")
 _commit="debc3dc91cf12b5c5b8a1c546a5b0b7bf7f838a8"
@@ -18,4 +18,28 @@ package() {
     unzip ${name}-${version}.zip -d $srcdir
     cp -r $srcdir/$_repo-$_commit/prebuilts/* $pkgdir/system
     install -Dm644 houdini.rc $pkgdir/system/etc/init/
+    source $startdir/scripton.sh
+
+    # ibt_get_expire_date originally decrypts to "20260901". Stub it to
+    # return "20991231" so the host-side time check never trips.
+    # Ghidra offsets assume image base 0x100000 (file offset = addr - 0x100000).
+    patch_expire() {
+        local result
+        result=$(PatchHex "$1" "$2" "$3" "$4")
+        echo "$result"
+        case "$result" in
+            *"Hex mismatch!"*)
+                echo "expire-date patch failed: $1 @ $2" >&2
+                exit 1
+                ;;
+        esac
+    }
+
+    houdini64_path="${pkgdir}/system/lib64/libhoudini.so"
+    patch_expire "$houdini64_path" 0x7682e3 000000000000000000 323039393132333100
+    patch_expire "$houdini64_path" 0x604d40 f30f1efa488d05d585000089 f30f1efa488d0598351600c3
+
+    houdini32_path="${pkgdir}/system/lib/libhoudini.so"
+    patch_expire "$houdini32_path" 0x6b50a3 000000000000000000 323039393132333100
+    patch_expire "$houdini32_path" 0x5592d0 f30f1efb5553575683ec2ce800000000 f30f1efbe8000000005805cabd1500c3
 }
