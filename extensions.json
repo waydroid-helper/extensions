@@ -1630,7 +1630,7 @@
                         "list": [
                             {
                                 "name": "houdini-hpe-14",
-                                "description": "Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC. ibt_get_expire_date (20260901) patched out",
+                                "description": "Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC. HPE time-bomb check disabled",
                                 "version": "14.0.0b_y.GoogleGame_com1.2",
                                 "path": "houdini-hpe-14-14.0.0b_y.GoogleGame_com1.2",
                                 "_commit": "debc3dc91cf12b5c5b8a1c546a5b0b7bf7f838a8",

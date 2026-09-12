@@ -1,29 +1,21 @@
 #!/bin/bash
 
-# https://github.com/waydroid/waydroid/issues/788#issuecomment-2162386712
-# author: qwerty12356-wart
-function CheckHex {
-    #file path, Ghidra offset, Hex to check
-    commandoutput="$(od $1 --skip-bytes=$(($2-0x100000)) --read-bytes=$((${#3} / 2)) --endian=little -t x1 -An file | sed 's/ //g')"
-    if [ "$commandoutput" = "$3" ]; then
-        echo "1"
-    else
-        echo "0"
-    fi
-}
+# HPE 14 libhoudini time-bomb fix, based on:
+# https://github.com/waydroid-helper/waydroid-helper/issues/127
+# The expiration check ends in a six-byte JAE at file offset 0xe6085.
 
-function PatchHex {
-    #file path, ghidra offset, original hex, new hex
-    file_offset=$(($2-0x100000))
-    if [ $(CheckHex $1 $2 $3) = "1" ]; then
-        # Pipe xxd straight into dd. Do not store the decoded bytes in a
-        # shell variable or pass them through echo; both drop 0x00.
-        printf '%s' "$4" | xxd -r -p | dd of="$1" seek="$file_offset" bs=1 conv=notrunc status=none
-        tmp="Patched $1 at $file_offset with new hex $4"
-        echo $tmp
-        elif [ $(CheckHex $1 $2 $4) = "1" ]; then
-        echo "Already patched"
-    else
-        echo "Hex mismatch!"
+PatchHexAtOffset() {
+    local file="$1" offset="$2" replacement="$3" offset_dec
+    offset_dec=$((offset))
+    local length=$(( ${#replacement} / 2 )) current
+    [[ -f "$file" ]] || { echo "Patch target not found: $file" >&2; return 1; }
+    [[ "$replacement" =~ ^[0-9a-fA-F]+$ ]] && (( length > 0 && ${#replacement} % 2 == 0 )) || { echo "Invalid replacement hex" >&2; return 1; }
+    current=$(od -An -tx1 -j "$offset_dec" -N "$length" "$file" | tr -d ' \n')
+    [[ ${#current} -eq ${#replacement} ]] || { echo "Patch offset outside file: $file @ 0x$(printf '%x' "$offset")" >&2; return 1; }
+    if [[ "${current,,}" == "${replacement,,}" ]]; then
+        echo "Already patched $file at 0x$(printf '%x' "$offset")"
+        return 0
     fi
+    printf '%s' "$replacement" | xxd -r -p | dd of="$file" bs=1 seek="$offset_dec" conv=notrunc status=none || return 1
+    echo "Patched $file at 0x$(printf '%x' "$offset") with $replacement"
 }
