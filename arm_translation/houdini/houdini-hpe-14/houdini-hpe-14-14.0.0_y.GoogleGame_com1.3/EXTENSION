@@ -1,0 +1,27 @@
+name=houdini-hpe-14
+version=14.0.0_y.GoogleGame_com1.3
+description="Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC. HPE time-bomb check disabled"
+provides=("arm_translaton")
+conflicts=("arm_translaton")
+_commit="2f8f088671182e17e67321e098e8411a3972a628"
+_repo="vendor_intel_proprietary_houdini"
+source=("${name}-${version}.zip::https://github.com/supremegamers/${_repo}/archive/${_commit}.zip")
+md5sums=("37fe0899f1e4da7f9a724cca1c1ab1ea")
+sha256sums=("2e82cdc88ddc4d418f7fb861aeebb7c49c83a91b97f57da10510b5e1146a4ed5")
+android_version=13
+arch=("x86_64")
+
+
+package() {
+    mkdir -p $pkgdir/system
+    mkdir -p $pkgdir/system/etc/init/
+    unzip ${name}-${version}.zip -d $srcdir
+    cp -r $srcdir/$_repo-$_commit/prebuilts/* $pkgdir/system
+    install -Dm644 houdini.rc $pkgdir/system/etc/init/
+    source "$startdir/scripton.sh"
+
+    # issue #127 specifies a raw file offset, not a virtual/Ghidra address.
+    # 1.3 moved the same six-byte JAE from 0xe6085 to 0xe61d5.
+    houdini64_path="${pkgdir}/system/lib64/libhoudini.so"
+    PatchHexAtOffset "$houdini64_path" 0xe61d5 909090909090 || exit 1
+}

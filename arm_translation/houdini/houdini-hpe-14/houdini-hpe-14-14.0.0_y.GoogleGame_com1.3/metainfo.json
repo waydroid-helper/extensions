@@ -1,0 +1,26 @@
+{
+    "name": "houdini-hpe-14",
+    "version": "14.0.0_y.GoogleGame_com1.3",
+    "description": "Intel's libhoudini for Intel x86 CPU, pulled from HPE image from Google Play Games for PC. HPE time-bomb check disabled",
+    "provides": [
+        "arm_translaton"
+    ],
+    "conflicts": [
+        "arm_translaton"
+    ],
+    "_commit": "2f8f088671182e17e67321e098e8411a3972a628",
+    "_repo": "vendor_intel_proprietary_houdini",
+    "source": [
+        "houdini-hpe-14-14.0.0_y.GoogleGame_com1.3.zip::https://github.com/supremegamers/vendor_intel_proprietary_houdini/archive/2f8f088671182e17e67321e098e8411a3972a628.zip"
+    ],
+    "md5sums": [
+        "37fe0899f1e4da7f9a724cca1c1ab1ea"
+    ],
+    "sha256sums": [
+        "2e82cdc88ddc4d418f7fb861aeebb7c49c83a91b97f57da10510b5e1146a4ed5"
+    ],
+    "android_version": "13",
+    "arch": [
+        "x86_64"
+    ]
+}
